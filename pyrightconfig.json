@@ -1,0 +1,27 @@
+{
+  "include": [
+    "shared",
+    "apps/pi",
+    "apps/server",
+    "scripts",
+    "tests"
+  ],
+  "extraPaths": [
+    "shared",
+    "apps/pi",
+    "apps/server"
+  ],
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": [
+        "shared",
+        "apps/pi",
+        "apps/server"
+      ]
+    }
+  ],
+  "venvPath": ".",
+  "venv": ".venv",
+  "typeCheckingMode": "basic"
+}

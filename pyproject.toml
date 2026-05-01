@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=80", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "truevision"
+version = "0.1.0"
+description = "TrueVision wearable assistive system"
+readme = "FEATURES.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115.0,<1.0.0",
+  "httpx>=0.28.0,<1.0.0",
+  "numpy>=2.2.0,<3.0.0",
+  "Pillow>=11.2.1,<12.0.0",
+  "pydantic>=2.11.0,<3.0.0",
+  "uvicorn>=0.35.0,<1.0.0",
+  "websockets>=15.0.0,<16.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.0,<9.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["shared", "apps/pi", "apps/server"]
+include = ["truevision_shared*", "truevision_pi*", "truevision_server*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

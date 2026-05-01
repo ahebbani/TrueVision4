@@ -1,0 +1,15 @@
+[Unit]
+Description=TrueVision Server Runtime
+After=network-online.target ollama.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/truevision
+ExecStart=/opt/truevision/.venv/bin/python -m truevision_server.app --host 0.0.0.0 --port 8008
+Restart=always
+RestartSec=3
+User=truevision
+
+[Install]
+WantedBy=multi-user.target

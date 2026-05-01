@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TrueVision Controller</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1116;
+      --panel: #141d26;
+      --panel-strong: #1b2733;
+      --accent: #7dd3fc;
+      --accent-strong: #38bdf8;
+      --text: #f8fafc;
+      --muted: #9fb4c7;
+      --danger: #fb7185;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 36%),
+        linear-gradient(180deg, #071017 0%, var(--bg) 100%);
+      color: var(--text);
+      padding: 20px;
+    }
+
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    .card {
+      background: rgba(20, 29, 38, 0.92);
+      border: 1px solid rgba(125, 211, 252, 0.16);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
+    }
+
+    h1, h2 {
+      margin: 0 0 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+
+    button, input {
+      border: 0;
+      border-radius: 14px;
+      font: inherit;
+    }
+
+    button {
+      padding: 16px 14px;
+      background: var(--panel-strong);
+      color: var(--text);
+      font-weight: 700;
+      transition: transform 120ms ease, background 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      background: #213241;
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, var(--accent-strong), #0ea5e9);
+      color: #03141d;
+    }
+
+    button.danger {
+      background: rgba(251, 113, 133, 0.18);
+      color: #ffd2da;
+    }
+
+    .stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .status {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    input {
+      flex: 1 1 220px;
+      padding: 14px 16px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    li {
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 14px;
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .small {
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="card stack">
+      <h1>TrueVision Controller</h1>
+      <p>Phone-side control for the Pi runtime. This first implementation exposes mode switching, quick launch state, manual face enrollment, and reminders.</p>
+    </section>
+
+    <section class="card stack">
+      <h2>Status</h2>
+      <div class="status" id="status"></div>
+    </section>
+
+    <section class="card stack">
+      <h2>Runtime Snapshot</h2>
+      <img id="hudImage" alt="HUD snapshot" style="width: 100%; border-radius: 16px; background: rgba(255,255,255,0.03);">
+      <div class="small" id="runtimeMeta"></div>
+    </section>
+
+    <section class="card stack">
+      <h2>Mode</h2>
+      <div class="grid">
+        <button onclick="setMode('face')">FACE</button>
+        <button onclick="setMode('audio')">AUDIO</button>
+        <button onclick="setMode('both')">BOTH</button>
+      </div>
+    </section>
+
+    <section class="card stack">
+      <h2>Launchers</h2>
+      <div class="grid">
+        <button onclick="openLauncher('news')">News</button>
+        <button onclick="openLauncher('weather')">Weather</button>
+        <button onclick="openLauncher('database')">Database</button>
+        <button onclick="openLauncher('instagram')">Instagram</button>
+        <button onclick="openLauncher('youtube')">YouTube</button>
+      </div>
+      <button class="danger" onclick="closeLauncher()">Close Launcher</button>
+    </section>
+
+    <section class="card stack">
+      <h2>Add Face</h2>
+      <div class="row">
+        <input id="faceName" placeholder="Name to enroll">
+        <button class="primary" onclick="createFace()">Save</button>
+      </div>
+      <ul id="faces"></ul>
+    </section>
+
+    <section class="card stack">
+      <h2>Notes &amp; Reminders</h2>
+      <div class="row">
+        <input id="noteContent" placeholder="Reminder or note text">
+        <button class="primary" onclick="createNote()">Add</button>
+      </div>
+      <ul id="notes"></ul>
+    </section>
+
+    <section class="card stack">
+      <h2>Meetings</h2>
+      <ul id="meetings"></ul>
+    </section>
+  </main>
+
+  <script>
+    async function api(path, options = {}) {
+      const response = await fetch(path, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options,
+      });
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(detail || response.statusText);
+      }
+      return response.json();
+    }
+
+    async function refresh() {
+      const [status, notes, faces] = await Promise.all([
+        api('/api/status'),
+        api('/api/notes'),
+        api('/api/faces'),
+      ]);
+      const meetings = await api('/api/meetings');
+      const runtime = status.runtime;
+
+      document.getElementById('status').innerHTML = `
+        <div>Requested mode: <strong>${status.requested_mode}</strong></div>
+        <div>Active mode: <strong>${status.active_mode}</strong></div>
+        <div>Display background: <strong>${status.display_background}</strong></div>
+        <div>Server connected: <strong>${status.server_connected}</strong></div>
+        <div>Launcher: <strong>${status.launcher ?? 'none'}</strong></div>
+        <div>Caption: <strong>${runtime.caption_text || 'none'}</strong></div>
+        <div>Audio buffer: <strong>${runtime.audio_buffer_duration_sec}s</strong></div>
+      `;
+
+      document.getElementById('hudImage').src = `/api/runtime/snapshot?ts=${Date.now()}`;
+      document.getElementById('runtimeMeta').textContent = `Detected faces: ${runtime.detected_face_count} · Sessions: ${runtime.active_session_count} · Camera: ${runtime.camera_backend}`;
+
+      document.getElementById('notes').innerHTML = notes.notes.map((note) => `
+        <li>
+          <div>
+            <div>${note.content}</div>
+            <div class="small">${note.is_done ? 'done' : 'active'} · ${note.created_at}</div>
+          </div>
+          ${note.is_done ? '' : `<button onclick="completeNote(${note.id})">Done</button>`}
+        </li>
+      `).join('');
+
+      document.getElementById('faces').innerHTML = faces.faces.map((face) => `
+        <li>
+          <div>
+            <div>${face.name}</div>
+            <div class="small">Seen ${face.seen_count} times</div>
+          </div>
+        </li>
+      `).join('');
+
+      document.getElementById('meetings').innerHTML = meetings.meetings.map((meeting) => `
+        <li>
+          <div>
+            <div>${meeting.summary || 'Pending summary'}</div>
+            <div class="small">Meeting ${meeting.id} · ${meeting.status} · ${meeting.started_at}</div>
+          </div>
+        </li>
+      `).join('') || '<li><div>No meetings yet.</div></li>';
+    }
+
+    async function setMode(mode) {
+      await api('/api/mode', { method: 'POST', body: JSON.stringify({ mode }) });
+      await refresh();
+    }
+
+    async function openLauncher(target) {
+      await api('/api/launchers/open', { method: 'POST', body: JSON.stringify({ target }) });
+      await refresh();
+    }
+
+    async function closeLauncher() {
+      await api('/api/launchers/close', { method: 'POST' });
+      await refresh();
+    }
+
+    async function createFace() {
+      const nameInput = document.getElementById('faceName');
+      if (!nameInput.value.trim()) return;
+      await api('/api/faces', { method: 'POST', body: JSON.stringify({ name: nameInput.value }) });
+      nameInput.value = '';
+      await refresh();
+    }
+
+    async function createNote() {
+      const noteInput = document.getElementById('noteContent');
+      if (!noteInput.value.trim()) return;
+      await api('/api/notes', { method: 'POST', body: JSON.stringify({ content: noteInput.value }) });
+      noteInput.value = '';
+      await refresh();
+    }
+
+    async function completeNote(id) {
+      await api(`/api/notes/${id}/done`, { method: 'POST' });
+      await refresh();
+    }
+
+    refresh().catch((error) => {
+      document.getElementById('status').textContent = error.message;
+    });
+  </script>
+</body>
+</html>

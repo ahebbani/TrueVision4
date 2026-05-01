@@ -674,3 +674,14 @@ The Pi hosts a **lightweight web-based controller app** that can be accessed fro
 
 ### Phone Controller App
 - No dependencies — pure HTML/CSS/JavaScript served by the Pi. Works in any modern mobile browser.
+
+
+Running any make command that requires the venv should activate it by itself. 
+
+Setup plus running should simply be "make setup-*" followed by "make run" or "make run-server". 
+
+Add a simple make add-face as well for adding faces in dev. 
+
+Ensure thorough logging for ease of debugging.
+
+Also add a make run-display so the AR shows the camera output as well in the hud instead of just black. 
