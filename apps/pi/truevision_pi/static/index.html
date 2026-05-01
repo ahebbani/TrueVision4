@@ -7,14 +7,16 @@
   <style>
     :root {
       color-scheme: dark;
-      --bg: #0b1116;
-      --panel: #141d26;
-      --panel-strong: #1b2733;
-      --accent: #7dd3fc;
-      --accent-strong: #38bdf8;
-      --text: #f8fafc;
-      --muted: #9fb4c7;
-      --danger: #fb7185;
+      --bg: #061114;
+      --panel: rgba(9, 21, 24, 0.82);
+      --panel-strong: rgba(13, 31, 36, 0.94);
+      --line: rgba(124, 222, 201, 0.18);
+      --accent: #7ce6d2;
+      --accent-strong: #b8ff6d;
+      --text: #eefbf7;
+      --muted: #98b7b0;
+      --danger: #ff7e91;
+      --warning: #ffd166;
     }
 
     * {
@@ -24,38 +26,80 @@
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      font-family: "IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
       background:
-        radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 36%),
-        linear-gradient(180deg, #071017 0%, var(--bg) 100%);
+        radial-gradient(circle at top left, rgba(124, 230, 210, 0.22), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(184, 255, 109, 0.14), transparent 24%),
+        linear-gradient(180deg, #041014 0%, var(--bg) 100%);
       color: var(--text);
-      padding: 20px;
+      padding: 22px;
     }
 
     main {
-      max-width: 760px;
+      max-width: 1180px;
       margin: 0 auto;
       display: grid;
       gap: 18px;
     }
 
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 18px;
+      padding: 8px 2px 2px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      font-size: 0.78rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+    }
+
+    .hero p {
+      max-width: 56ch;
+      margin-top: 10px;
+    }
+
     .card {
-      background: rgba(20, 29, 38, 0.92);
-      border: 1px solid rgba(125, 211, 252, 0.16);
-      border-radius: 18px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 24px;
       padding: 18px;
-      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.24);
+      backdrop-filter: blur(18px);
     }
 
     h1, h2 {
       margin: 0 0 12px;
       font-weight: 700;
-      letter-spacing: 0.02em;
+      letter-spacing: 0.01em;
     }
 
     p {
       margin: 0;
       color: var(--muted);
+    }
+
+    .layout {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.9fr);
+      align-items: start;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
     }
 
     .grid {
@@ -66,41 +110,110 @@
 
     button, input {
       border: 0;
-      border-radius: 14px;
+      border-radius: 16px;
       font: inherit;
     }
 
     button {
-      padding: 16px 14px;
+      padding: 14px 14px;
       background: var(--panel-strong);
       color: var(--text);
       font-weight: 700;
-      transition: transform 120ms ease, background 120ms ease;
+      transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      cursor: pointer;
     }
 
     button:hover {
       transform: translateY(-1px);
-      background: #213241;
+      background: rgba(18, 41, 46, 0.94);
+      border-color: rgba(124, 230, 210, 0.28);
     }
 
     button.primary {
-      background: linear-gradient(135deg, var(--accent-strong), #0ea5e9);
-      color: #03141d;
+      background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+      color: #041014;
     }
 
     button.danger {
-      background: rgba(251, 113, 133, 0.18);
-      color: #ffd2da;
+      background: rgba(255, 126, 145, 0.14);
+      color: #ffd7df;
     }
 
-    .stack {
+    .hero-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .snapshot-shell {
+      display: grid;
+      gap: 14px;
+    }
+
+    .snapshot-frame {
+      position: relative;
+      overflow: hidden;
+      border-radius: 22px;
+      border: 1px solid rgba(124, 230, 210, 0.2);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)),
+        #041014;
+      min-height: 320px;
+    }
+
+    .snapshot-frame::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(124, 230, 210, 0.08), transparent 18%, transparent 82%, rgba(184, 255, 109, 0.06));
+    }
+
+    #hudImage {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      display: block;
+      background: rgba(255,255,255,0.03);
+    }
+
+    .snapshot-meta,
+    .status-grid,
+    .pill-row {
       display: grid;
       gap: 10px;
     }
 
-    .status {
-      display: grid;
-      gap: 6px;
+    .status-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .pill-row {
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    }
+
+    .pill,
+    .stat {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .pill strong,
+    .stat strong {
+      display: block;
+      font-size: 1rem;
+      color: var(--text);
+      margin-top: 4px;
+    }
+
+    .label {
+      font-size: 0.76rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
       color: var(--muted);
     }
 
@@ -113,7 +226,7 @@
     input {
       flex: 1 1 220px;
       padding: 14px 16px;
-      background: rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.05);
       color: var(--text);
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
@@ -128,84 +241,159 @@
 
     li {
       background: rgba(255, 255, 255, 0.04);
-      border-radius: 14px;
+      border-radius: 16px;
       padding: 12px 14px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 12px;
+      border: 1px solid rgba(255,255,255,0.04);
     }
 
     .small {
       font-size: 0.92rem;
       color: var(--muted);
     }
+
+    .status-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .status-line:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .status-line strong {
+      color: var(--text);
+      text-align: right;
+    }
+
+    .live-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--accent-strong);
+      box-shadow: 0 0 0 6px rgba(184, 255, 109, 0.14);
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+
+    .error {
+      color: #ffd7df;
+      background: rgba(255, 126, 145, 0.12);
+      border: 1px solid rgba(255, 126, 145, 0.22);
+      border-radius: 16px;
+      padding: 12px 14px;
+    }
+
+    @media (max-width: 960px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .status-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
   <main>
-    <section class="card stack">
-      <h1>TrueVision Controller</h1>
-      <p>Phone-side control for the Pi runtime. This first implementation exposes mode switching, quick launch state, manual face enrollment, and reminders.</p>
-    </section>
-
-    <section class="card stack">
-      <h2>Status</h2>
-      <div class="status" id="status"></div>
-    </section>
-
-    <section class="card stack">
-      <h2>Runtime Snapshot</h2>
-      <img id="hudImage" alt="HUD snapshot" style="width: 100%; border-radius: 16px; background: rgba(255,255,255,0.03);">
-      <div class="small" id="runtimeMeta"></div>
-    </section>
-
-    <section class="card stack">
-      <h2>Mode</h2>
-      <div class="grid">
-        <button onclick="setMode('face')">FACE</button>
-        <button onclick="setMode('audio')">AUDIO</button>
-        <button onclick="setMode('both')">BOTH</button>
+    <section class="hero">
+      <div>
+        <div class="eyebrow"><span class="live-dot"></span>TrueVision Controller</div>
+        <h1>Live Pi control and overlay preview</h1>
+        <p>Track the runtime, preview the current HUD, change modes, and manage reminders or enrollments without reloading the page.</p>
+      </div>
+      <div class="hero-actions">
+        <button onclick="refresh(true)">Refresh Now</button>
       </div>
     </section>
 
-    <section class="card stack">
-      <h2>Launchers</h2>
-      <div class="grid">
-        <button onclick="openLauncher('news')">News</button>
-        <button onclick="openLauncher('weather')">Weather</button>
-        <button onclick="openLauncher('database')">Database</button>
-        <button onclick="openLauncher('instagram')">Instagram</button>
-        <button onclick="openLauncher('youtube')">YouTube</button>
-      </div>
-      <button class="danger" onclick="closeLauncher()">Close Launcher</button>
-    </section>
+    <section class="layout">
+      <div class="stack">
+        <section class="card snapshot-shell">
+          <div>
+            <h2>Runtime Snapshot</h2>
+            <p>Live preview of the current Pi HUD or camera-overlay frame.</p>
+          </div>
+          <div class="pill-row" id="statusBadges"></div>
+          <div class="snapshot-frame">
+            <img id="hudImage" alt="HUD snapshot">
+          </div>
+          <div class="small" id="runtimeMeta"></div>
+        </section>
 
-    <section class="card stack">
-      <h2>Add Face</h2>
-      <div class="row">
-        <input id="faceName" placeholder="Name to enroll">
-        <button class="primary" onclick="createFace()">Save</button>
-      </div>
-      <ul id="faces"></ul>
-    </section>
+        <section class="card stack">
+          <h2>Mode</h2>
+          <div class="grid">
+            <button onclick="setMode('face')">FACE</button>
+            <button onclick="setMode('audio')">AUDIO</button>
+            <button onclick="setMode('both')">BOTH</button>
+          </div>
+        </section>
 
-    <section class="card stack">
-      <h2>Notes &amp; Reminders</h2>
-      <div class="row">
-        <input id="noteContent" placeholder="Reminder or note text">
-        <button class="primary" onclick="createNote()">Add</button>
-      </div>
-      <ul id="notes"></ul>
-    </section>
+        <section class="card stack">
+          <h2>Launchers</h2>
+          <div class="grid">
+            <button onclick="openLauncher('news')">News</button>
+            <button onclick="openLauncher('weather')">Weather</button>
+            <button onclick="openLauncher('database')">Database</button>
+            <button onclick="openLauncher('instagram')">Instagram</button>
+            <button onclick="openLauncher('youtube')">YouTube</button>
+          </div>
+          <button class="danger" onclick="closeLauncher()">Close Launcher</button>
+        </section>
 
-    <section class="card stack">
-      <h2>Meetings</h2>
-      <ul id="meetings"></ul>
+        <section class="card stack">
+          <h2>Meetings</h2>
+          <ul id="meetings"></ul>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="card stack">
+          <h2>System</h2>
+          <div id="status"></div>
+          <div class="small" id="lastUpdated"></div>
+        </section>
+
+        <section class="card stack">
+          <h2>Add Face</h2>
+          <div class="row">
+            <input id="faceName" placeholder="Name to enroll">
+            <button class="primary" onclick="createFace()">Save</button>
+          </div>
+          <ul id="faces"></ul>
+        </section>
+
+        <section class="card stack">
+          <h2>Notes &amp; Reminders</h2>
+          <div class="row">
+            <input id="noteContent" placeholder="Reminder or note text">
+            <button class="primary" onclick="createNote()">Add</button>
+          </div>
+          <ul id="notes"></ul>
+        </section>
+      </div>
     </section>
   </main>
 
   <script>
+    let refreshInFlight = false;
+
     async function api(path, options = {}) {
       const response = await fetch(path, {
         headers: { 'Content-Type': 'application/json' },
@@ -218,55 +406,74 @@
       return response.json();
     }
 
-    async function refresh() {
-      const [status, notes, faces] = await Promise.all([
-        api('/api/status'),
-        api('/api/notes'),
-        api('/api/faces'),
-      ]);
-      const meetings = await api('/api/meetings');
-      const runtime = status.runtime;
+    async function refresh(force = false) {
+      if (refreshInFlight && !force) {
+        return;
+      }
+      refreshInFlight = true;
+      try {
+        const [status, notes, faces, meetings] = await Promise.all([
+          api('/api/status'),
+          api('/api/notes'),
+          api('/api/faces'),
+          api('/api/meetings'),
+        ]);
+        const runtime = status.runtime;
 
-      document.getElementById('status').innerHTML = `
-        <div>Requested mode: <strong>${status.requested_mode}</strong></div>
-        <div>Active mode: <strong>${status.active_mode}</strong></div>
-        <div>Display background: <strong>${status.display_background}</strong></div>
-        <div>Server connected: <strong>${status.server_connected}</strong></div>
-        <div>Launcher: <strong>${status.launcher ?? 'none'}</strong></div>
-        <div>Caption: <strong>${runtime.caption_text || 'none'}</strong></div>
-        <div>Audio buffer: <strong>${runtime.audio_buffer_duration_sec}s</strong></div>
-      `;
+        document.getElementById('status').innerHTML = `
+          <div class="status-line"><span>Requested mode</span><strong>${status.requested_mode}</strong></div>
+          <div class="status-line"><span>Active mode</span><strong>${status.active_mode}</strong></div>
+          <div class="status-line"><span>Display</span><strong>${status.display_background}</strong></div>
+          <div class="status-line"><span>Server</span><strong>${status.server_connected ? 'connected' : 'offline'}</strong></div>
+          <div class="status-line"><span>Camera backend</span><strong>${runtime.camera_backend}${runtime.camera_simulated ? ' (sim)' : ''}</strong></div>
+          <div class="status-line"><span>Audio buffer</span><strong>${runtime.audio_buffer_duration_sec}s</strong></div>
+          <div class="status-line"><span>Caption</span><strong>${runtime.caption_text || 'waiting'}</strong></div>
+          <div class="status-line"><span>Launcher</span><strong>${status.launcher ?? 'none'}</strong></div>
+        `;
 
-      document.getElementById('hudImage').src = `/api/runtime/snapshot?ts=${Date.now()}`;
-      document.getElementById('runtimeMeta').textContent = `Detected faces: ${runtime.detected_face_count} · Sessions: ${runtime.active_session_count} · Camera: ${runtime.camera_backend}`;
+        document.getElementById('statusBadges').innerHTML = `
+          <div class="pill"><div class="label">Detected faces</div><strong>${runtime.detected_face_count}</strong></div>
+          <div class="pill"><div class="label">Active sessions</div><strong>${runtime.active_session_count}</strong></div>
+          <div class="pill"><div class="label">Render count</div><strong>${runtime.render_count}</strong></div>
+          <div class="pill"><div class="label">Window</div><strong>${runtime.window_active ? 'live' : 'snapshot only'}</strong></div>
+        `;
 
-      document.getElementById('notes').innerHTML = notes.notes.map((note) => `
-        <li>
-          <div>
-            <div>${note.content}</div>
-            <div class="small">${note.is_done ? 'done' : 'active'} · ${note.created_at}</div>
-          </div>
-          ${note.is_done ? '' : `<button onclick="completeNote(${note.id})">Done</button>`}
-        </li>
-      `).join('');
+        document.getElementById('hudImage').src = `/api/runtime/snapshot?ts=${Date.now()}`;
+        document.getElementById('runtimeMeta').textContent = `Last render ${runtime.last_rendered_at} · Camera ${runtime.camera_backend} · Snapshot ${runtime.snapshot_ready ? 'ready' : 'pending'}`;
+        document.getElementById('lastUpdated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
 
-      document.getElementById('faces').innerHTML = faces.faces.map((face) => `
-        <li>
-          <div>
-            <div>${face.name}</div>
-            <div class="small">Seen ${face.seen_count} times</div>
-          </div>
-        </li>
-      `).join('');
+        document.getElementById('notes').innerHTML = notes.notes.map((note) => `
+          <li>
+            <div>
+              <div>${note.content}</div>
+              <div class="small">${note.is_done ? 'done' : 'active'} · ${note.created_at}</div>
+            </div>
+            ${note.is_done ? '' : `<button onclick="completeNote(${note.id})">Done</button>`}
+          </li>
+        `).join('') || '<li><div>No reminders yet.</div></li>';
 
-      document.getElementById('meetings').innerHTML = meetings.meetings.map((meeting) => `
-        <li>
-          <div>
-            <div>${meeting.summary || 'Pending summary'}</div>
-            <div class="small">Meeting ${meeting.id} · ${meeting.status} · ${meeting.started_at}</div>
-          </div>
-        </li>
-      `).join('') || '<li><div>No meetings yet.</div></li>';
+        document.getElementById('faces').innerHTML = faces.faces.map((face) => `
+          <li>
+            <div>
+              <div>${face.name}</div>
+              <div class="small">Seen ${face.seen_count} times</div>
+            </div>
+          </li>
+        `).join('') || '<li><div>No enrolled faces yet.</div></li>';
+
+        document.getElementById('meetings').innerHTML = meetings.meetings.map((meeting) => `
+          <li>
+            <div>
+              <div>${meeting.summary || 'Pending summary'}</div>
+              <div class="small">Meeting ${meeting.id} · ${meeting.status} · ${meeting.started_at}</div>
+            </div>
+          </li>
+        `).join('') || '<li><div>No meetings yet.</div></li>';
+      } catch (error) {
+        document.getElementById('status').innerHTML = `<div class="error">${error.message}</div>`;
+      } finally {
+        refreshInFlight = false;
+      }
     }
 
     async function setMode(mode) {
@@ -305,9 +512,12 @@
       await refresh();
     }
 
-    refresh().catch((error) => {
-      document.getElementById('status').textContent = error.message;
-    });
+    refresh(true);
+    setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        refresh();
+      }
+    }, 1500);
   </script>
 </body>
 </html>

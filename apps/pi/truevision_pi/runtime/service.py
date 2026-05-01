@@ -116,7 +116,13 @@ class PiRuntimeService:
         self._audio_only_session: ActiveSession | None = None
         self._person_sessions: dict[int, ActiveSession] = {}
         self._latest_detections: list[dict[str, Any]] = []
+        self._cached_face_detections: list[Any] = []
+        self._last_detection_at = 0.0
+        self._detection_interval_sec = 0.25
+        self._last_snapshot_saved_at = 0.0
+        self._snapshot_interval_sec = 0.5
         self._toast_text: str | None = None
+        self._toast_expires_at = 0.0
         self._last_mode: str | None = None
 
         self._receiver.register_mode_callback(self._state.set_requested_mode)
@@ -151,6 +157,7 @@ class PiRuntimeService:
     def render_once(self) -> dict[str, Any]:
         self._state.set_server_connected(self._server_connection.is_available)
         state = serialize_status(self._state.snapshot())
+        mode_changed = state["active_mode"] != self._last_mode
         notes = self._store.list_notes(active_only=True)[:3]
         background_frame: CameraFrame | None = None
         camera_frame: CameraFrame | None = None
@@ -164,18 +171,23 @@ class PiRuntimeService:
         if state["display_background"] == DisplayBackground.CAMERA.value and camera_frame is not None:
             background_frame = camera_frame
 
-        detections = self._recognizer.recognize(camera_frame.image) if camera_frame and state["active_mode"] in {"face", "both"} else []
-        self._latest_detections = [self._recognizer.serialize_detection(detection) for detection in detections]
+        detections = self._get_face_detections(
+            camera_frame.image if camera_frame is not None else None,
+            state["active_mode"],
+            force_refresh=mode_changed,
+        )
+        self._latest_detections = self._serialize_detections(detections)
         self._handle_mode_and_sessions(state, detections)
         self._forwarder.pump_audio()
         caption_text = self._captioner.update()
+        toast_text = self._current_toast()
 
         enriched_state = {
             **state,
             "detected_faces": self._latest_detections,
             "detected_face_count": len(self._latest_detections),
             "caption_text": caption_text,
-            "toast_text": self._toast_text,
+            "toast_text": toast_text,
             "audio_buffer_duration_sec": round(self._receiver.duration_seconds(), 2),
             "active_session_count": len(self._person_sessions) + (1 if self._audio_only_session else 0),
         }
@@ -193,7 +205,6 @@ class PiRuntimeService:
         )
 
         self._config.runtime_snapshot_dir.mkdir(parents=True, exist_ok=True)
-        frame.save(self._config.runtime_snapshot_path, format="JPEG", quality=88)
         self._render_count += 1
         status = self._build_status(
             snapshot_ready=True,
@@ -204,10 +215,13 @@ class PiRuntimeService:
             detected_faces=self._latest_detections,
             caption_text=caption_text,
             active_session_count=len(self._person_sessions) + (1 if self._audio_only_session else 0),
-            toast_text=self._toast_text,
+            toast_text=toast_text,
             receiver_stats=self._receiver.stats(),
         )
-        self._config.runtime_metadata_path.write_text(json.dumps(status, indent=2), encoding="utf-8")
+        if self._should_persist_snapshot():
+            frame.save(self._config.runtime_snapshot_path, format="JPEG", quality=88)
+            self._config.runtime_metadata_path.write_text(json.dumps(status, indent=2), encoding="utf-8")
+            self._last_snapshot_saved_at = time.monotonic()
         if self._window is not None:
             self._window.show(frame)
 
@@ -223,19 +237,19 @@ class PiRuntimeService:
     def open_launcher(self, target: str) -> dict[str, Any]:
         self._launcher.open(target)
         snapshot = self._state.set_launcher(target)
-        self._toast_text = f"Opened: {target}"
+        self._set_toast(f"Opened: {target}")
         return serialize_status(snapshot)
 
     def close_launcher(self) -> dict[str, Any]:
         self._launcher.close()
         snapshot = self._state.set_launcher(None)
-        self._toast_text = "Closed launcher"
+        self._set_toast("Closed launcher")
         return serialize_status(snapshot)
 
     def enroll_face(self, name: str):
         frame = self._frame_source.capture()
         face = self._recognizer.enroll_largest_face(name, frame.image)
-        self._toast_text = f"Saved: {name}"
+        self._set_toast(f"Saved: {name}")
         return face
 
     def checkpoints(self) -> list[dict[str, str]]:
@@ -335,7 +349,8 @@ class PiRuntimeService:
     def _handle_mode_and_sessions(self, state: dict[str, Any], detections) -> None:
         active_mode = state["active_mode"]
         if active_mode != self._last_mode:
-            self._toast_text = f"Mode: {active_mode.upper()}"
+            if self._last_mode is not None:
+                self._set_toast(f"Mode: {active_mode.upper()}", duration_sec=1.25)
             self._last_mode = active_mode
 
         if active_mode == "audio":
@@ -452,7 +467,7 @@ class PiRuntimeService:
             audio_path=str(audio_path) if audio_path else session.audio_path,
             source_language=source_language,
         )
-        self._toast_text = summary[:58] if summary else "Session saved"
+        self._set_toast(summary[:58] if summary else "Session saved")
         self._handle_command_intents(transcript, session)
 
     def _handle_command_intents(self, transcript: str, session: ActiveSession) -> None:
@@ -467,14 +482,14 @@ class PiRuntimeService:
         lowered = command.lower()
         if any(token in lowered for token in ("remind", "note", "remember")) and "face" not in lowered:
             self._store.add_note(command)
-            self._toast_text = f"Reminder saved: {command[:36]}"
+            self._set_toast(f"Reminder saved: {command[:36]}")
             return
         if "telegram" in lowered or lowered.startswith("send"):
             result = self._server_connection.send_command("telegram_llm", command=transcript)
             if result is not None:
-                self._toast_text = "Telegram sent"
+                self._set_toast("Telegram sent")
             else:
-                self._toast_text = "Telegram unavailable"
+                self._set_toast("Telegram unavailable")
 
     def _shutdown_sessions(self) -> None:
         if self._audio_only_session is not None:
@@ -493,3 +508,46 @@ class PiRuntimeService:
                 self._logger.exception("runtime render failed", exc_info=exc)
             elapsed = time.monotonic() - started
             self._stop_event.wait(max(0.01, interval - elapsed))
+
+    def _get_face_detections(
+        self,
+        image: Image.Image | None,
+        active_mode: str,
+        *,
+        force_refresh: bool,
+    ) -> list[Any]:
+        if image is None or active_mode not in {"face", "both"}:
+            self._cached_face_detections = []
+            return []
+        now = time.monotonic()
+        if not force_refresh and self._cached_face_detections and now - self._last_detection_at < self._detection_interval_sec:
+            return list(self._cached_face_detections)
+        detections = self._recognizer.recognize(image)
+        self._cached_face_detections = list(detections)
+        self._last_detection_at = now
+        return detections
+
+    def _serialize_detections(self, detections: list[Any]) -> list[dict[str, Any]]:
+        serialized: list[dict[str, Any]] = []
+        for detection in detections:
+            payload = self._recognizer.serialize_detection(detection)
+            payload["recording"] = bool(detection.face_id is not None and detection.face_id in self._person_sessions)
+            serialized.append(payload)
+        return serialized
+
+    def _should_persist_snapshot(self) -> bool:
+        if not self._config.runtime_snapshot_path.exists() or not self._config.runtime_metadata_path.exists():
+            return True
+        return time.monotonic() - self._last_snapshot_saved_at >= self._snapshot_interval_sec
+
+    def _set_toast(self, text: str, *, duration_sec: float = 2.0) -> None:
+        self._toast_text = text
+        self._toast_expires_at = time.monotonic() + duration_sec
+
+    def _current_toast(self) -> str | None:
+        if self._toast_text is None:
+            return None
+        if time.monotonic() <= self._toast_expires_at:
+            return self._toast_text
+        self._toast_text = None
+        return None

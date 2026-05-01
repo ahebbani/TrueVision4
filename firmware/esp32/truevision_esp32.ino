@@ -11,14 +11,15 @@ constexpr uint8_t TYPE_MARKER = 0x03;
 
 constexpr int HEARTBEAT_LED = 9;
 constexpr int PACKET_LED = 10;
+constexpr int RECORD_LED = 38;
 constexpr int MODE_AUDIO_PIN = 35;
 constexpr int MODE_FACE_PIN = 36;
 
 constexpr int I2S_SCK = 8;
 constexpr int I2S_WS = 6;
 constexpr int I2S_SD = 7;
-constexpr int UART_TX = 17;
-constexpr int UART_RX = 18;
+constexpr int UART_TX = 43;
+constexpr int UART_RX = 44;
 
 constexpr uint32_t SAMPLE_RATE = 16000;
 constexpr size_t PACKET_SAMPLES = 256;
@@ -26,7 +27,7 @@ constexpr uint32_t UART_BAUD = 921600;
 constexpr uint32_t HEARTBEAT_MS = 500;
 constexpr uint32_t DEBOUNCE_MS = 50;
 
-HardwareSerial SerialPi(2);
+HardwareSerial SerialPi(0);
 int32_t i2sBuffer[PACKET_SAMPLES];
 int16_t pcmBuffer[PACKET_SAMPLES];
 

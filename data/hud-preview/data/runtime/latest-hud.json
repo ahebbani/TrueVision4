@@ -1,0 +1,99 @@
+{
+  "requested_mode": "face",
+  "active_mode": "face",
+  "display_background": "black",
+  "server_connected": false,
+  "launcher": null,
+  "db_path": "/Users/adity/Files/TrueVision4/data/hud-preview/data/faces.db",
+  "snapshot_ready": true,
+  "snapshot_path": "/Users/adity/Files/TrueVision4/data/hud-preview/data/runtime/latest-hud.jpg",
+  "metadata_path": "/Users/adity/Files/TrueVision4/data/hud-preview/data/runtime/latest-hud.json",
+  "camera_backend": "mock",
+  "camera_simulated": true,
+  "window_requested": true,
+  "window_active": false,
+  "render_count": 1,
+  "last_rendered_at": "2026-05-01T02:09:54.032845+00:00",
+  "active_note_count": 3,
+  "known_face_count": 2,
+  "detected_face_count": 2,
+  "detected_faces": [
+    {
+      "face_id": 1,
+      "name": "John",
+      "bbox": [
+        80,
+        100,
+        120,
+        120
+      ],
+      "confidence": 0.92,
+      "quality": 180.0,
+      "summary": null,
+      "seen_count": 0,
+      "last_seen_at": null,
+      "unknown": false,
+      "recording": false
+    },
+    {
+      "face_id": 2,
+      "name": "John",
+      "bbox": [
+        260,
+        130,
+        120,
+        120
+      ],
+      "confidence": 0.92,
+      "quality": 180.0,
+      "summary": null,
+      "seen_count": 0,
+      "last_seen_at": null,
+      "unknown": false,
+      "recording": false
+    }
+  ],
+  "caption_text": "",
+  "active_session_count": 0,
+  "audio_buffer_duration_sec": 0.0,
+  "toast_text": null,
+  "receiver_stats": {
+    "backend": "auto",
+    "mode": "face",
+    "audio_packets": 0,
+    "checksum_errors": 0,
+    "buffer_duration_sec": 0.0
+  },
+  "checkpoints": [
+    {
+      "name": "database",
+      "status": "pass",
+      "detail": "/Users/adity/Files/TrueVision4/data/hud-preview/data/faces.db"
+    },
+    {
+      "name": "snapshot_pipeline",
+      "status": "pass",
+      "detail": "/Users/adity/Files/TrueVision4/data/hud-preview/data/runtime/latest-hud.jpg"
+    },
+    {
+      "name": "camera_background",
+      "status": "pass",
+      "detail": "background=black backend=mock simulated=True"
+    },
+    {
+      "name": "audio_pipeline",
+      "status": "warn",
+      "detail": "buffer_sec=0.0 backend=auto"
+    },
+    {
+      "name": "face_pipeline",
+      "status": "pass",
+      "detail": "known=2 detected=2"
+    },
+    {
+      "name": "display_window",
+      "status": "warn",
+      "detail": "requested=True active=False"
+    }
+  ]
+}
