@@ -6,6 +6,13 @@ PYTHON := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
 UVICORN := $(VENV)/bin/uvicorn
 INSTALL_STAMP := $(VENV)/.installed
+UNAME_S := $(shell uname -s)
+VENV_FLAGS :=
+
+ifeq ($(UNAME_S),Linux)
+VENV_FLAGS += --system-site-packages
+endif
+
 PORT ?= 8080
 SERVER_PORT ?= 8008
 NAME ?= Developer Face
@@ -14,7 +21,7 @@ CONTROLLER_URL ?= http://127.0.0.1:$(PORT)
 .PHONY: install setup-pi setup-server run run-face run-audio run-force-both run-display run-server run-server-dev add-face db test checkpoints embeddings backfill-transcripts summarize-meetings backfill-summaries
 
 $(VENV)/bin/python:
-	python3 -m venv $(VENV)
+	python3 -m venv $(VENV_FLAGS) $(VENV)
 
 $(INSTALL_STAMP): pyproject.toml $(VENV)/bin/python
 	$(PIP) install --upgrade pip

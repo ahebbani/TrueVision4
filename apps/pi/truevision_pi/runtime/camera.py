@@ -7,6 +7,7 @@ from typing import Protocol
 
 from PIL import Image, ImageDraw
 
+from truevision_pi.system_imports import import_optional_module
 from truevision_shared.config import AppConfig, CameraBackend
 
 
@@ -74,7 +75,7 @@ class OpenCVFrameSource:
     def start(self) -> None:
         if self._capture is not None:
             return
-        import cv2  # type: ignore
+        cv2 = import_optional_module("cv2")
 
         self._cv2 = cv2
         capture = cv2.VideoCapture(self._config.camera_device_index)
@@ -114,7 +115,8 @@ class Picamera2FrameSource:
     def start(self) -> None:
         if self._camera is not None:
             return
-        from picamera2 import Picamera2  # type: ignore
+        picamera2 = import_optional_module("picamera2")
+        Picamera2 = picamera2.Picamera2
 
         camera = Picamera2()
         configuration = camera.create_preview_configuration(
@@ -164,7 +166,7 @@ def build_frame_source(config: AppConfig, logger: Logger) -> FrameSource:
             source = source_class(config)  # type: ignore[call-arg]
             source.start()  # type: ignore[attr-defined]
         except Exception as exc:  # pragma: no cover - exercised only with optional deps
-            logger.warning("camera backend unavailable", extra={"backend": name, "error": str(exc)})
+            logger.warning("camera backend %s unavailable: %s", name, exc)
             continue
         logger.info("camera backend selected", extra={"backend": name})
         return source  # type: ignore[return-value]

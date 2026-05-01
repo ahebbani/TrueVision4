@@ -8,6 +8,7 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
+from truevision_pi.system_imports import import_optional_module
 from truevision_shared.config import AppConfig
 from truevision_shared.store import PiStore
 
@@ -105,10 +106,9 @@ class FaceRecognizer:
 
     def _load_cv2(self):
         try:  # pragma: no cover - optional runtime path
-            import cv2  # type: ignore
+            return import_optional_module("cv2")
         except Exception:
             return None
-        return cv2
 
     def _detect_faces(self, image: Image.Image) -> list[tuple[int, int, int, int]]:
         if self._cv2 is None or self._cascade is None:

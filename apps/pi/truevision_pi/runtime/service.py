@@ -22,6 +22,7 @@ from truevision_pi.faces.recognizer import FaceRecognizer
 from truevision_pi.launchers.browser_launcher import BrowserLauncher
 from truevision_pi.runtime.camera import CameraFrame, FrameSource, build_frame_source
 from truevision_pi.runtime.hud import render_hud
+from truevision_pi.system_imports import import_optional_module
 from truevision_shared.config import AppConfig, DisplayBackground
 from truevision_shared.pi_state import PiRuntimeState, serialize_status
 from truevision_shared.store import PiStore, serialize_face
@@ -74,9 +75,9 @@ class WindowRenderer:
 
     def _initialize_backend(self) -> bool:
         try:  # pragma: no cover - depends on optional cv2 install
-            import cv2  # type: ignore
+            cv2 = import_optional_module("cv2")
         except Exception as exc:
-            self._logger.warning("OpenCV window rendering unavailable", extra={"error": str(exc)})
+            self._logger.warning("OpenCV window rendering unavailable: %s", exc)
             return False
         self._cv2 = cv2
         return True
