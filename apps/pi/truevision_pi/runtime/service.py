@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from dataclasses import dataclass
 import json
 from logging import Logger
 from pathlib import Path
+from queue import Queue
 from threading import Event, Lock, Thread
 import time
 from typing import Any
@@ -36,6 +38,14 @@ class ActiveSession:
         self.person_id = person_id
         self.person_name = person_name
         self.audio_path = audio_path
+
+
+@dataclass(slots=True)
+class PendingFinalization:
+    session: ActiveSession
+    previous_summary: str | None
+    audio_path: str | None
+    should_wait_remote: bool
 
 
 class WindowRenderer:
@@ -113,6 +123,8 @@ class PiRuntimeService:
         self._last_status: dict[str, Any] = self._build_status(snapshot_ready=False)
         self._stop_event = Event()
         self._thread: Thread | None = None
+        self._finalizer_thread: Thread | None = None
+        self._finalize_queue: Queue[PendingFinalization | None] = Queue()
         self._audio_only_session: ActiveSession | None = None
         self._person_sessions: dict[int, ActiveSession] = {}
         self._latest_detections: list[dict[str, Any]] = []
@@ -132,6 +144,7 @@ class PiRuntimeService:
             return
         self._logger.info("starting pi runtime service")
         self._stop_event.clear()
+        self._start_finalizer()
         self._receiver.start()
         self._server_connection.start()
         self.render_once()
@@ -145,6 +158,7 @@ class PiRuntimeService:
             self._thread.join(timeout=2)
             self._thread = None
         self._shutdown_sessions()
+        self._stop_finalizer()
         self._forwarder.close()
         self._server_connection.stop()
         self._receiver.stop()
@@ -375,7 +389,7 @@ class PiRuntimeService:
     def _ensure_audio_only_session(self, *, stop_only: bool = False) -> None:
         if stop_only:
             if self._audio_only_session is not None:
-                self._finalize_session(self._audio_only_session)
+                self._schedule_finalize_session(self._audio_only_session)
                 self._audio_only_session = None
             return
         if self._audio_only_session is not None:
@@ -424,20 +438,32 @@ class PiRuntimeService:
     def _stop_person_session(self, face_id: int) -> None:
         session = self._person_sessions.pop(face_id, None)
         if session is not None:
-            self._finalize_session(session)
+            self._schedule_finalize_session(session)
 
-    def _finalize_session(self, session: ActiveSession) -> None:
+    def _schedule_finalize_session(self, session: ActiveSession) -> None:
         self._captioner.stop_session(session.session_key)
         previous_summary = self._store.get_latest_summary(session.person_id) if session.person_id is not None else None
+        audio_path = self._recorder.stop() or Path(session.audio_path) if session.audio_path else None
+        self._finalize_queue.put(
+            PendingFinalization(
+                session=session,
+                previous_summary=previous_summary,
+                audio_path=str(audio_path) if audio_path else session.audio_path,
+                should_wait_remote=self._server_connection.is_available,
+            )
+        )
+
+    def _finalize_session(self, pending: PendingFinalization) -> None:
+        session = pending.session
         remote_result = None
-        if self._server_connection.is_available:
+        if pending.should_wait_remote:
             remote_result = self._forwarder.end_session(
                 session_key=session.session_key,
-                previous_summary=previous_summary,
+                previous_summary=pending.previous_summary,
                 person_name=session.person_name,
                 max_chars=140,
             )
-        audio_path = self._recorder.stop() or Path(session.audio_path) if session.audio_path else None
+        audio_path = Path(pending.audio_path) if pending.audio_path else None
         transcript = ""
         summary = ""
         source_language = None
@@ -451,12 +477,12 @@ class PiRuntimeService:
             source_language = result.source_language
             summary = self._server_connection.summarize(
                 transcript=transcript,
-                previous_summary=previous_summary,
+                previous_summary=pending.previous_summary,
                 person_name=session.person_name,
                 max_chars=140,
             ) or summarize_one_sentence(
                 transcript,
-                previous_summary=previous_summary,
+                previous_summary=pending.previous_summary,
                 person_name=session.person_name,
                 max_chars=140,
             )
@@ -493,7 +519,7 @@ class PiRuntimeService:
 
     def _shutdown_sessions(self) -> None:
         if self._audio_only_session is not None:
-            self._finalize_session(self._audio_only_session)
+            self._schedule_finalize_session(self._audio_only_session)
             self._audio_only_session = None
         for face_id in list(self._person_sessions):
             self._stop_person_session(face_id)
@@ -551,3 +577,30 @@ class PiRuntimeService:
             return self._toast_text
         self._toast_text = None
         return None
+
+    def _start_finalizer(self) -> None:
+        if self._finalizer_thread is not None:
+            return
+        self._finalizer_thread = Thread(
+            target=self._run_finalizer_loop,
+            name="truevision-pi-finalizer",
+            daemon=True,
+        )
+        self._finalizer_thread.start()
+
+    def _stop_finalizer(self) -> None:
+        if self._finalizer_thread is None:
+            return
+        self._finalize_queue.put(None)
+        self._finalizer_thread.join(timeout=10)
+        self._finalizer_thread = None
+
+    def _run_finalizer_loop(self) -> None:
+        while True:
+            pending = self._finalize_queue.get()
+            if pending is None:
+                return
+            try:
+                self._finalize_session(pending)
+            except Exception as exc:  # pragma: no cover - defensive background path
+                self._logger.exception("session finalization failed", exc_info=exc)
